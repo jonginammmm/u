@@ -1,0 +1,1965 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#03040a">
+
+<title>Tonight — Just For You</title>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    -webkit-tap-highlight-color:transparent;
+}
+
+html,body{
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    background:#03040a;
+    color:white;
+    font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "SF Pro Display",
+        "Segoe UI",
+        sans-serif;
+}
+
+body{
+    touch-action:none;
+}
+
+canvas{
+    position:fixed;
+    inset:0;
+    width:100%;
+    height:100%;
+    display:block;
+}
+
+#game{
+    z-index:1;
+}
+
+#stars{
+    z-index:0;
+}
+
+.ui{
+    position:fixed;
+    inset:0;
+    z-index:10;
+    pointer-events:none;
+}
+
+.top{
+    position:absolute;
+    top:0;
+    left:0;
+    right:0;
+
+    padding:
+        calc(15px + env(safe-area-inset-top))
+        16px 10px;
+
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+
+    font-size:10px;
+    letter-spacing:.18em;
+
+    color:rgba(255,255,255,.65);
+}
+
+.scoreBox{
+    display:flex;
+    gap:8px;
+    align-items:center;
+}
+
+.dot{
+    width:7px;
+    height:7px;
+    border-radius:50%;
+    background:white;
+    box-shadow:0 0 12px white;
+}
+
+#score{
+    font-variant-numeric:tabular-nums;
+}
+
+#lives{
+    letter-spacing:4px;
+}
+
+/* START */
+
+.overlay{
+    position:fixed;
+    inset:0;
+    z-index:20;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    padding:22px;
+
+    background:
+        radial-gradient(
+            circle at 50% 45%,
+            rgba(80,120,255,.10),
+            transparent 45%
+        ),
+        rgba(2,3,8,.45);
+
+    backdrop-filter:blur(5px);
+    -webkit-backdrop-filter:blur(5px);
+
+    transition:
+        opacity .8s ease,
+        visibility .8s ease;
+}
+
+.overlay.hide{
+    opacity:0;
+    visibility:hidden;
+    pointer-events:none;
+}
+
+.panel{
+    width:100%;
+    max-width:520px;
+
+    padding:29px 22px;
+
+    border-radius:30px;
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(255,255,255,.12),
+            rgba(255,255,255,.035)
+        );
+
+    border:
+        1px solid rgba(255,255,255,.17);
+
+    backdrop-filter:
+        blur(24px)
+        saturate(1.3);
+
+    -webkit-backdrop-filter:
+        blur(24px)
+        saturate(1.3);
+
+    box-shadow:
+        0 30px 100px rgba(0,0,0,.6),
+        inset 0 1px 0 rgba(255,255,255,.15);
+
+    text-align:center;
+}
+
+.mini{
+    font-size:8px;
+    letter-spacing:.35em;
+    color:rgba(255,255,255,.4);
+    text-transform:uppercase;
+    margin-bottom:18px;
+}
+
+h1{
+    font-size:clamp(42px,13vw,78px);
+    line-height:.88;
+    letter-spacing:-.08em;
+}
+
+.desc{
+    margin:23px auto 0;
+    max-width:400px;
+
+    color:rgba(255,255,255,.68);
+    font-size:14px;
+    line-height:1.8;
+}
+
+.startButton{
+    margin-top:28px;
+
+    padding:14px 25px;
+
+    color:white;
+    background:rgba(255,255,255,.12);
+
+    border:
+        1px solid
+        rgba(255,255,255,.28);
+
+    border-radius:999px;
+
+    font-size:13px;
+
+    pointer-events:auto;
+
+    transition:.2s;
+}
+
+.startButton:active{
+    transform:scale(.92);
+}
+
+/* GAME HELP */
+
+#hint{
+    position:absolute;
+
+    left:50%;
+    bottom:
+        calc(28px + env(safe-area-inset-bottom));
+
+    transform:translateX(-50%);
+
+    color:rgba(255,255,255,.42);
+
+    font-size:10px;
+    letter-spacing:.08em;
+
+    text-align:center;
+
+    white-space:nowrap;
+
+    transition:opacity .8s ease;
+}
+
+/* COUNTDOWN */
+
+#countdown{
+    position:fixed;
+    inset:0;
+    z-index:30;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    pointer-events:none;
+
+    font-size:100px;
+    font-weight:200;
+
+    opacity:0;
+}
+
+#countdown.show{
+    animation:count .8s ease forwards;
+}
+
+@keyframes count{
+    0%{
+        opacity:0;
+        transform:scale(1.5);
+    }
+    25%{
+        opacity:1;
+    }
+    100%{
+        opacity:0;
+        transform:scale(.7);
+    }
+}
+
+/* WIN */
+
+#win{
+    position:fixed;
+    inset:0;
+    z-index:40;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    padding:22px;
+
+    opacity:0;
+    visibility:hidden;
+
+    background:
+        radial-gradient(
+            circle at 50% 45%,
+            rgba(255,255,255,.08),
+            transparent 42%
+        ),
+        rgba(1,2,6,.82);
+
+    backdrop-filter:blur(14px);
+    -webkit-backdrop-filter:blur(14px);
+
+    transition:
+        opacity 1s ease,
+        visibility 1s ease;
+}
+
+#win.show{
+    opacity:1;
+    visibility:visible;
+}
+
+.winPanel{
+    max-width:520px;
+    text-align:center;
+}
+
+.winTitle{
+    font-size:
+        clamp(45px,14vw,82px);
+
+    line-height:.86;
+    letter-spacing:-.085em;
+}
+
+.winText{
+    margin-top:25px;
+
+    font-family:
+        "Segoe Print",
+        "Bradley Hand",
+        cursive;
+
+    font-size:15px;
+    line-height:1.9;
+
+    color:rgba(255,255,255,.78);
+}
+
+.restart{
+    margin-top:25px;
+
+    padding:12px 19px;
+
+    border-radius:999px;
+
+    border:
+        1px solid
+        rgba(255,255,255,.2);
+
+    color:white;
+    background:rgba(255,255,255,.07);
+}
+
+/* MOBILE */
+
+@media(max-width:380px){
+
+    .panel{
+        padding:25px 17px;
+    }
+
+    .desc{
+        font-size:13px;
+    }
+
+}
+</style>
+</head>
+
+<body>
+
+<canvas id="stars"></canvas>
+<canvas id="game"></canvas>
+
+
+<div class="ui">
+
+    <div class="top">
+
+        <div class="scoreBox">
+            <span class="dot"></span>
+            <span id="score">0 / 20</span>
+        </div>
+
+        <div id="lives">● ● ●</div>
+
+    </div>
+
+    <div id="hint">
+        Barmog‘ingni chapga yoki o‘ngga sur
+    </div>
+
+</div>
+
+
+<!-- START -->
+
+<div id="start" class="overlay">
+
+    <div class="panel">
+
+        <div class="mini">
+            TONIGHT / PRIVATE MISSION
+        </div>
+
+        <h1>
+            Tunni<br>
+            birga<br>
+            kesib o‘tamiz.
+        </h1>
+
+        <div class="desc">
+            Bugun ko‘p ishlading.
+            Endi hech narsa haqida o‘ylama.
+            Faqat uchamiz.
+
+            <br><br>
+
+            Yorug‘liklarni yig‘.
+            To‘siqlardan qoch.
+            20 tasini topsang —
+            oxirida seni bitta xabar kutadi.
+        </div>
+
+        <button
+            class="startButton"
+            id="startButton">
+            Uchishni boshlash
+        </button>
+
+    </div>
+
+</div>
+
+
+<!-- COUNTDOWN -->
+
+<div id="countdown"></div>
+
+
+<!-- WIN -->
+
+<div id="win">
+
+    <div class="winPanel">
+
+        <div class="mini">
+            MISSION COMPLETE
+        </div>
+
+        <div class="winTitle">
+            Yetib<br>
+            keldik.
+        </div>
+
+        <div class="winText">
+            Bugun sen juda ko‘p ish qilding.
+
+            <br><br>
+
+            Endi boshqa hech narsa qilma.
+
+            <br><br>
+
+            Telefonni bir chetga qo‘y,
+            chuqur nafas ol,
+            biroz dam ol.
+
+            <br><br>
+
+            Bugungi kun uchun
+            sen yetarlicha harakat qilding.
+
+            <br><br>
+
+            <b>
+            Endi navbat — o‘zingga.
+            🤍
+            </b>
+        </div>
+
+        <button
+            class="restart"
+            onclick="location.reload()">
+            Yana uchish
+        </button>
+
+    </div>
+
+</div>
+
+
+<script>
+
+/* =========================================================
+   CANVAS
+========================================================= */
+
+const game =
+    document.getElementById("game");
+
+const ctx =
+    game.getContext("2d",{
+        alpha:false
+    });
+
+const starsCanvas =
+    document.getElementById("stars");
+
+const sctx =
+    starsCanvas.getContext("2d",{
+        alpha:true
+    });
+
+
+let W=0;
+let H=0;
+let DPR=1;
+
+
+function resize(){
+
+    W=window.innerWidth;
+    H=window.innerHeight;
+
+    /*
+       DPR 1.5 dan oshmaydi.
+       Bu telefonda FPSni saqlaydi.
+    */
+
+    DPR=Math.min(
+        window.devicePixelRatio || 1,
+        1.5
+    );
+
+    game.width=W*DPR;
+    game.height=H*DPR;
+
+    starsCanvas.width=W*DPR;
+    starsCanvas.height=H*DPR;
+
+    game.style.width=W+"px";
+    game.style.height=H+"px";
+
+    starsCanvas.style.width=W+"px";
+    starsCanvas.style.height=H+"px";
+
+    ctx.setTransform(
+        DPR,0,0,DPR,0,0
+    );
+
+    sctx.setTransform(
+        DPR,0,0,DPR,0,0
+    );
+
+    buildStars();
+
+}
+
+window.addEventListener(
+    "resize",
+    resize
+);
+
+
+/* =========================================================
+   STAR FIELD
+========================================================= */
+
+let stars=[];
+
+function buildStars(){
+
+    stars=[];
+
+    /*
+       Faqat 75 ta yulduz.
+       Ko‘p qilib telefonni qiynamaymiz.
+    */
+
+    for(let i=0;i<75;i++){
+
+        stars.push({
+
+            x:Math.random()*W,
+            y:Math.random()*H,
+
+            size:
+                Math.random()*.9+.25,
+
+            alpha:
+                Math.random()*.55+.15,
+
+            speed:
+                Math.random()*.3+.05
+
+        });
+
+    }
+
+}
+
+function drawStars(){
+
+    sctx.clearRect(
+        0,0,W,H
+    );
+
+    for(const s of stars){
+
+        s.y += s.speed;
+
+        if(s.y>H){
+            s.y=0;
+            s.x=Math.random()*W;
+        }
+
+        sctx.beginPath();
+
+        sctx.arc(
+            s.x,
+            s.y,
+            s.size,
+            0,
+            Math.PI*2
+        );
+
+        sctx.fillStyle=
+            "rgba(255,255,255,"+
+            s.alpha+
+            ")";
+
+        sctx.fill();
+
+    }
+
+    requestAnimationFrame(
+        drawStars
+    );
+
+}
+
+
+/* =========================================================
+   GAME STATE
+========================================================= */
+
+let running=false;
+let gameOver=false;
+
+let score=0;
+let lives=3;
+
+let playerX=0;
+let targetX=0;
+
+let speed=0.010;
+
+let objects=[];
+
+let spawnTimer=0;
+
+let lastTime=0;
+
+
+/* =========================================================
+   PLAYER
+========================================================= */
+
+function playerY(){
+
+    return H*.79;
+
+}
+
+
+/* =========================================================
+   3D PROJECTION
+========================================================= */
+
+/*
+   z:
+   1 = uzoq
+   0 = yaqin
+
+   z kamaygani sari obyekt
+   ekranga kattalashadi.
+*/
+
+function project(x,z){
+
+    const depth =
+        1-z;
+
+    const perspective =
+        Math.pow(depth,1.45);
+
+    const center =
+        W/2;
+
+    const horizon =
+        H*.37;
+
+    const y =
+        horizon +
+        (playerY()-horizon)*
+        perspective;
+
+    const spread =
+        W*.80 *
+        perspective;
+
+    const px =
+        center +
+        x*spread;
+
+    const scale =
+        .15 +
+        perspective*1.15;
+
+    return {
+        x:px,
+        y:y,
+        scale:scale
+    };
+
+}
+
+
+/* =========================================================
+   SPAWN
+========================================================= */
+
+function spawn(){
+
+    const type =
+        Math.random()<.73
+        ? "light"
+        : "block";
+
+    objects.push({
+
+        type:type,
+
+        x:
+            (Math.random()-.5)
+            *1.5,
+
+        z:1,
+
+        rotation:
+            Math.random()*Math.PI*2,
+
+        hit:false,
+
+        size:
+            type==="light"
+            ? .035
+            : .065
+
+    });
+
+}
+
+
+/* =========================================================
+   ROAD
+========================================================= */
+
+function drawRoad(){
+
+    const horizon=H*.37;
+    const bottom=H*1.05;
+
+    /*
+       tunnel floor
+    */
+
+    const grad=
+        ctx.createLinearGradient(
+            0,horizon,
+            0,bottom
+        );
+
+    grad.addColorStop(
+        0,
+        "rgba(8,12,30,.15)"
+    );
+
+    grad.addColorStop(
+        1,
+        "rgba(2,4,10,.72)"
+    );
+
+    ctx.fillStyle=grad;
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        W*.38,
+        horizon
+    );
+
+    ctx.lineTo(
+        W*.62,
+        horizon
+    );
+
+    ctx.lineTo(
+        W*1.05,
+        bottom
+    );
+
+    ctx.lineTo(
+        -W*.05,
+        bottom
+    );
+
+    ctx.closePath();
+
+    ctx.fill();
+
+
+    /*
+       road lines
+    */
+
+    ctx.strokeStyle=
+        "rgba(100,140,255,.10)";
+
+    ctx.lineWidth=1;
+
+    for(let i=-4;i<=4;i++){
+
+        const topX =
+            W/2 + i*W*.025;
+
+        const bottomX =
+            W/2 + i*W*.25;
+
+        ctx.beginPath();
+
+        ctx.moveTo(
+            topX,
+            horizon
+        );
+
+        ctx.lineTo(
+            bottomX,
+            bottom
+        );
+
+        ctx.stroke();
+
+    }
+
+
+    /*
+       horizontal tunnel lines
+    */
+
+    for(let i=0;i<8;i++){
+
+        let p =
+            ((i/8)+(performance.now()*.00015))
+            %1;
+
+        const y=
+            horizon+
+            Math.pow(p,2.1)*
+            (bottom-horizon);
+
+        const half=
+            20+
+            p*W*.65;
+
+        ctx.strokeStyle=
+            "rgba(110,150,255,"+
+            (.035+p*.05)+
+            ")";
+
+        ctx.beginPath();
+
+        ctx.moveTo(
+            W/2-half,
+            y
+        );
+
+        ctx.lineTo(
+            W/2+half,
+            y
+        );
+
+        ctx.stroke();
+
+    }
+
+}
+
+
+/* =========================================================
+   TUNNEL RINGS
+========================================================= */
+
+function drawRings(){
+
+    const horizon=H*.37;
+
+    for(let i=0;i<9;i++){
+
+        let p=
+            ((i/9)+
+            performance.now()*.00008)
+            %1;
+
+        const depth=
+            Math.pow(p,1.7);
+
+        const rx=
+            12+
+            depth*W*.58;
+
+        const ry=
+            7+
+            depth*H*.35;
+
+        const alpha=
+            .03+
+            depth*.09;
+
+        ctx.save();
+
+        ctx.translate(
+            W/2,
+            horizon+
+            depth*(playerY()-horizon)
+        );
+
+        ctx.scale(
+            1,
+            .55
+        );
+
+        ctx.beginPath();
+
+        ctx.ellipse(
+            0,
+            0,
+            rx,
+            ry,
+            0,
+            0,
+            Math.PI*2
+        );
+
+        ctx.strokeStyle=
+            "rgba(110,150,255,"+
+            alpha+
+            ")";
+
+        ctx.lineWidth=1;
+
+        ctx.stroke();
+
+        ctx.restore();
+
+    }
+
+}
+
+
+/* =========================================================
+   PLAYER SHIP
+========================================================= */
+
+function drawPlayer(){
+
+    const y=playerY();
+
+    const x=playerX;
+
+    /*
+       shadow
+    */
+
+    const glow=
+        ctx.createRadialGradient(
+            x,y+20,
+            0,
+            x,y+20,
+            70
+        );
+
+    glow.addColorStop(
+        0,
+        "rgba(80,160,255,.20)"
+    );
+
+    glow.addColorStop(
+        1,
+        "rgba(80,160,255,0)"
+    );
+
+    ctx.fillStyle=glow;
+
+    ctx.beginPath();
+
+    ctx.arc(
+        x,
+        y+15,
+        70,
+        0,
+        Math.PI*2
+    );
+
+    ctx.fill();
+
+
+    /*
+       ship
+    */
+
+    ctx.save();
+
+    ctx.translate(x,y);
+
+    ctx.beginPath();
+
+    ctx.moveTo(0,-22);
+    ctx.lineTo(13,15);
+    ctx.lineTo(4,11);
+    ctx.lineTo(0,25);
+    ctx.lineTo(-4,11);
+    ctx.lineTo(-13,15);
+    ctx.closePath();
+
+    const shipGrad=
+        ctx.createLinearGradient(
+            0,-25,
+            0,25
+        );
+
+    shipGrad.addColorStop(
+        0,
+        "#ffffff"
+    );
+
+    shipGrad.addColorStop(
+        .5,
+        "#9ec8ff"
+    );
+
+    shipGrad.addColorStop(
+        1,
+        "#3975ff"
+    );
+
+    ctx.fillStyle=shipGrad;
+
+    ctx.shadowBlur=18;
+    ctx.shadowColor=
+        "rgba(90,160,255,.8)";
+
+    ctx.fill();
+
+    ctx.restore();
+
+
+    /*
+       engine
+    */
+
+    const flame=
+        ctx.createLinearGradient(
+            0,
+            y+10,
+            0,
+            y+52
+        );
+
+    flame.addColorStop(
+        0,
+        "rgba(255,255,255,.8)"
+    );
+
+    flame.addColorStop(
+        .4,
+        "rgba(70,170,255,.5)"
+    );
+
+    flame.addColorStop(
+        1,
+        "rgba(50,100,255,0)"
+    );
+
+    ctx.fillStyle=flame;
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        x-5,
+        y+10
+    );
+
+    ctx.lineTo(
+        x+5,
+        y+10
+    );
+
+    ctx.lineTo(
+        x,
+        y+53
+    );
+
+    ctx.closePath();
+
+    ctx.fill();
+
+}
+
+
+/* =========================================================
+   LIGHT OBJECT
+========================================================= */
+
+function drawLight(o,p){
+
+    const size=
+        10+
+        p.scale*16;
+
+    const glow=
+        ctx.createRadialGradient(
+            p.x,
+            p.y,
+            0,
+            p.x,
+            p.y,
+            size*4
+        );
+
+    glow.addColorStop(
+        0,
+        "rgba(255,255,255,.8)"
+    );
+
+    glow.addColorStop(
+        .2,
+        "rgba(120,190,255,.35)"
+    );
+
+    glow.addColorStop(
+        1,
+        "rgba(80,130,255,0)"
+    );
+
+    ctx.fillStyle=glow;
+
+    ctx.beginPath();
+
+    ctx.arc(
+        p.x,
+        p.y,
+        size*4,
+        0,
+        Math.PI*2
+    );
+
+    ctx.fill();
+
+
+    ctx.save();
+
+    ctx.translate(
+        p.x,
+        p.y
+    );
+
+    ctx.rotate(
+        o.rotation
+    );
+
+    ctx.fillStyle="#fff";
+
+    ctx.shadowBlur=12;
+    ctx.shadowColor=
+        "rgba(130,190,255,.9)";
+
+    ctx.beginPath();
+
+    ctx.moveTo(0,-size);
+    ctx.lineTo(size*.55,0);
+    ctx.lineTo(0,size);
+    ctx.lineTo(-size*.55,0);
+
+    ctx.closePath();
+
+    ctx.fill();
+
+    ctx.restore();
+
+}
+
+
+/* =========================================================
+   OBSTACLE
+========================================================= */
+
+function drawBlock(o,p){
+
+    const size=
+        15+
+        p.scale*28;
+
+    ctx.save();
+
+    ctx.translate(
+        p.x,
+        p.y
+    );
+
+    ctx.rotate(
+        o.rotation
+    );
+
+    ctx.strokeStyle=
+        "rgba(255,75,105,.8)";
+
+    ctx.fillStyle=
+        "rgba(255,35,75,.08)";
+
+    ctx.lineWidth=
+        1.5;
+
+    ctx.shadowBlur=18;
+    ctx.shadowColor=
+        "rgba(255,30,80,.55)";
+
+    ctx.beginPath();
+
+    ctx.rect(
+        -size,
+        -size,
+        size*2,
+        size*2
+    );
+
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.restore();
+
+}
+
+
+/* =========================================================
+   COLLISION
+========================================================= */
+
+function checkCollision(o,p){
+
+    /*
+       Faqat yaqinlashganda tekshiramiz.
+       Bu ham FPSni tejaydi.
+    */
+
+    if(o.z>.18)return false;
+
+    const dx=
+        p.x-playerX;
+
+    const dy=
+        p.y-playerY();
+
+    const distance=
+        Math.sqrt(
+            dx*dx+
+            dy*dy
+        );
+
+    const range=
+        o.type==="light"
+        ? 38
+        : 47;
+
+    return distance<range;
+
+}
+
+
+/* =========================================================
+   UPDATE
+========================================================= */
+
+function update(dt){
+
+    /*
+       player smooth
+    */
+
+    playerX +=
+        (targetX-playerX)
+        *Math.min(
+            1,
+            dt*.012
+        );
+
+
+    /*
+       speed asta oshadi
+    */
+
+    speed=
+        Math.min(
+            .020,
+            .010+
+            score*.00025
+        );
+
+
+    /*
+       spawn
+    */
+
+    spawnTimer-=dt;
+
+    if(spawnTimer<=0){
+
+        spawnTimer=
+            Math.max(
+                330,
+                680-score*8
+            );
+
+        spawn();
+
+    }
+
+
+    /*
+       objects
+    */
+
+    for(let i=objects.length-1;i>=0;i--){
+
+        const o=objects[i];
+
+        o.z-=speed*(dt/16.67);
+
+        o.rotation+=
+            .008*(dt/16.67);
+
+
+        const p=
+            project(
+                o.x,
+                o.z
+            );
+
+
+        if(
+            !o.hit &&
+            checkCollision(o,p)
+        ){
+
+            o.hit=true;
+
+            if(o.type==="light"){
+
+                score++;
+
+                updateUI();
+
+                createBurst(
+                    p.x,
+                    p.y,
+                    true
+                );
+
+            }else{
+
+                lives--;
+
+                updateUI();
+
+                createBurst(
+                    p.x,
+                    p.y,
+                    false
+                );
+
+                flashDamage();
+
+                if(lives<=0){
+
+                    endGame();
+
+                }
+
+            }
+
+            objects.splice(i,1);
+
+            continue;
+
+        }
+
+
+        if(o.z<=0){
+
+            objects.splice(i,1);
+
+        }
+
+    }
+
+
+    if(score>=20){
+
+        win();
+
+    }
+
+}
+
+
+/* =========================================================
+   DRAW
+========================================================= */
+
+function draw(){
+
+    /*
+       background
+    */
+
+    ctx.fillStyle="#03040a";
+
+    ctx.fillRect(
+        0,
+        0,
+        W,
+        H
+    );
+
+
+    /*
+       subtle blue atmosphere
+    */
+
+    const bg=
+        ctx.createRadialGradient(
+            W/2,
+            H*.45,
+            0,
+            W/2,
+            H*.45,
+            H*.8
+        );
+
+    bg.addColorStop(
+        0,
+        "rgba(35,60,130,.10)"
+    );
+
+    bg.addColorStop(
+        1,
+        "rgba(0,0,0,0)"
+    );
+
+    ctx.fillStyle=bg;
+
+    ctx.fillRect(
+        0,
+        0,
+        W,
+        H
+    );
+
+
+    drawRoad();
+
+    drawRings();
+
+
+    /*
+       uzoq obyektlardan yaqinlarga
+    */
+
+    objects.sort(
+        (a,b)=>b.z-a.z
+    );
+
+    for(const o of objects){
+
+        const p=
+            project(
+                o.x,
+                o.z
+            );
+
+        if(
+            p.x<-100 ||
+            p.x>W+100 ||
+            p.y<-100 ||
+            p.y>H+100
+        ){
+            continue;
+        }
+
+        if(o.type==="light"){
+
+            drawLight(o,p);
+
+        }else{
+
+            drawBlock(o,p);
+
+        }
+
+    }
+
+
+    drawPlayer();
+
+}
+
+
+/* =========================================================
+   LOOP
+========================================================= */
+
+function loop(time){
+
+    if(!lastTime)
+        lastTime=time;
+
+    const dt=
+        Math.min(
+            32,
+            time-lastTime
+        );
+
+    lastTime=time;
+
+    if(running){
+
+        update(dt);
+
+        draw();
+
+    }
+
+    requestAnimationFrame(loop);
+
+}
+
+
+/* =========================================================
+   INPUT
+========================================================= */
+
+let pointerActive=false;
+
+function movePlayer(clientX){
+
+    /*
+       Ekran bo‘ylab joylashuv:
+       -1 ... +1
+    */
+
+    const normalized=
+        (clientX/W)*2-1;
+
+    targetX=
+        W/2+
+        normalized*
+        W*.38;
+
+}
+
+
+game.addEventListener(
+    "touchstart",
+    e=>{
+
+        e.preventDefault();
+
+        pointerActive=true;
+
+        movePlayer(
+            e.touches[0].clientX
+        );
+
+    },
+    {passive:false}
+);
+
+game.addEventListener(
+    "touchmove",
+    e=>{
+
+        e.preventDefault();
+
+        movePlayer(
+            e.touches[0].clientX
+        );
+
+    },
+    {passive:false}
+);
+
+game.addEventListener(
+    "touchend",
+    ()=>{
+
+        pointerActive=false;
+
+    }
+);
+
+
+game.addEventListener(
+    "mousedown",
+    e=>{
+
+        pointerActive=true;
+
+        movePlayer(
+            e.clientX
+        );
+
+    }
+);
+
+window.addEventListener(
+    "mousemove",
+    e=>{
+
+        if(pointerActive){
+
+            movePlayer(
+                e.clientX
+            );
+
+        }
+
+    }
+);
+
+window.addEventListener(
+    "mouseup",
+    ()=>{
+
+        pointerActive=false;
+
+    }
+);
+
+
+/* =========================================================
+   PARTICLE BURST
+========================================================= */
+
+let bursts=[];
+
+function createBurst(
+    x,
+    y,
+    good
+){
+
+    /*
+       Faqat 12 particle.
+       Juda yengil.
+    */
+
+    for(let i=0;i<12;i++){
+
+        const a=
+            Math.random()*
+            Math.PI*2;
+
+        const s=
+            Math.random()*3+1;
+
+        bursts.push({
+
+            x:x,
+            y:y,
+
+            vx:Math.cos(a)*s,
+            vy:Math.sin(a)*s,
+
+            life:1,
+
+            good:good
+
+        });
+
+    }
+
+}
+
+
+function drawBursts(){
+
+    for(
+        let i=bursts.length-1;
+        i>=0;
+        i--
+    ){
+
+        const b=bursts[i];
+
+        b.x+=b.vx;
+        b.y+=b.vy;
+
+        b.vx*=.96;
+        b.vy*=.96;
+
+        b.life-=.035;
+
+        if(b.life<=0){
+
+            bursts.splice(i,1);
+
+            continue;
+
+        }
+
+        ctx.beginPath();
+
+        ctx.arc(
+            b.x,
+            b.y,
+            2,
+            0,
+            Math.PI*2
+        );
+
+        ctx.fillStyle=
+            b.good
+            ? "rgba(255,255,255,"+b.life+")"
+            : "rgba(255,50,80,"+b.life+")";
+
+        ctx.fill();
+
+    }
+
+    requestAnimationFrame(
+        drawBursts
+    );
+
+}
+
+
+/* =========================================================
+   DAMAGE FLASH
+========================================================= */
+
+function flashDamage(){
+
+    const el=
+        document.getElementById(
+            "countdown"
+        );
+
+    el.textContent="";
+
+    el.classList.remove("show");
+
+    void el.offsetWidth;
+
+    el.classList.add("show");
+
+}
+
+
+/* =========================================================
+   UI
+========================================================= */
+
+function updateUI(){
+
+    document.getElementById(
+        "score"
+    ).textContent=
+        score+" / 20";
+
+
+    let text="";
+
+    for(let i=0;i<3;i++){
+
+        text+=
+            i<lives
+            ? "● "
+            : "○ ";
+
+    }
+
+    document.getElementById(
+        "lives"
+    ).textContent=text;
+
+}
+
+
+/* =========================================================
+   START
+========================================================= */
+
+document
+    .getElementById("startButton")
+    .addEventListener(
+        "click",
+        startGame
+    );
+
+
+function startGame(){
+
+    const start=
+        document.getElementById(
+            "start"
+        );
+
+    start.classList.add("hide");
+
+    setTimeout(()=>{
+
+        running=true;
+
+        playerX=W/2;
+        targetX=W/2;
+
+        score=0;
+        lives=3;
+
+        objects=[];
+
+        spawnTimer=400;
+
+        updateUI();
+
+    },700);
+
+}
+
+
+/* =========================================================
+   GAME OVER
+========================================================= */
+
+function endGame(){
+
+    running=false;
+
+    setTimeout(()=>{
+
+        const win=
+            document.getElementById(
+                "win"
+            );
+
+        win.classList.add("show");
+
+        win.querySelector(
+            ".winTitle"
+        ).innerHTML=
+            "Biroz<br>dam ol.";
+
+        win.querySelector(
+            ".winText"
+        ).innerHTML=
+        `
+        Bugun juda ko‘p ish qilganing
+        yetarli.
+
+        <br><br>
+
+        O‘yinni yutish shart emas.
+
+        <br><br>
+
+        Hozir eng keraklisi —
+        dam olish. 🤍
+        `;
+
+    },500);
+
+}
+
+
+/* =========================================================
+   WIN
+========================================================= */
+
+function win(){
+
+    if(!running)return;
+
+    running=false;
+
+    /*
+       kichik oq flash
+    */
+
+    const f=
+        document.createElement("div");
+
+    f.style.position="fixed";
+    f.style.inset="0";
+    f.style.background="white";
+    f.style.opacity="0";
+    f.style.zIndex="35";
+    f.style.transition="opacity .5s";
+
+    document.body.appendChild(f);
+
+    requestAnimationFrame(()=>{
+
+        f.style.opacity=".12";
+
+    });
+
+    setTimeout(()=>{
+
+        f.style.opacity="0";
+
+        setTimeout(()=>{
+
+            f.remove();
+
+            document
+                .getElementById("win")
+                .classList.add("show");
+
+        },500);
+
+    },350);
+
+}
+
+
+/* =========================================================
+   INIT
+========================================================= */
+
+resize();
+
+drawStars();
+
+drawBursts();
+
+requestAnimationFrame(loop);
+
+</script>
+
+</body>
+</html>
